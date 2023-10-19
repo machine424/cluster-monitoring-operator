@@ -27,7 +27,6 @@ import (
 	"github.com/openshift/cluster-monitoring-operator/pkg/client"
 	"github.com/openshift/cluster-monitoring-operator/pkg/manifests"
 	"github.com/openshift/cluster-monitoring-operator/pkg/metrics"
-	cmostr "github.com/openshift/cluster-monitoring-operator/pkg/strings"
 	"github.com/openshift/cluster-monitoring-operator/pkg/tasks"
 	"github.com/openshift/library-go/pkg/operator/csr"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -689,26 +688,27 @@ func (o *Operator) sync(ctx context.Context, key string) error {
 		// should also be created first because it is referenced by Prometheus.
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec("Updating metrics scraping client CA", tasks.NewMetricsClientCATask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Prometheus Operator", tasks.NewPrometheusOperatorTask(o.client, factory)),
+				tasks.NewTaskSpec("MetricsScrapingClientCA", tasks.NewMetricsClientCATask(o.client, factory, config)),
+				tasks.NewTaskSpec("PrometheusOperator", tasks.NewPrometheusOperatorTask(o.client, factory)),
 			}),
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec("Updating user workload Prometheus Operator", tasks.NewPrometheusOperatorUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Cluster Monitoring Operator", tasks.NewClusterMonitoringOperatorTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Prometheus-k8s", tasks.NewPrometheusTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Prometheus-user-workload", tasks.NewPrometheusUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Alertmanager", tasks.NewAlertmanagerTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Alertmanager-user-workload", tasks.NewAlertmanagerUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating node-exporter", tasks.NewNodeExporterTask(o.client, factory)),
-				tasks.NewTaskSpec("Updating kube-state-metrics", tasks.NewKubeStateMetricsTask(o.client, factory)),
-				tasks.NewTaskSpec("Updating openshift-state-metrics", tasks.NewOpenShiftStateMetricsTask(o.client, factory)),
-				tasks.NewTaskSpec("Updating prometheus-adapter", tasks.NewPrometheusAdapterTask(ctx, o.namespace, o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Telemeter client", tasks.NewTelemeterClientTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Thanos Querier", tasks.NewThanosQuerierTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating User Workload Thanos Ruler", tasks.NewThanosRulerUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Control Plane components", tasks.NewControlPlaneTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Updating Console Plugin components", tasks.NewMonitoringPluginTask(o.client, factory, config)),
+				tasks.NewTaskSpec("ClusterMonitoringOperatorDeps", tasks.NewClusterMonitoringOperatorTask(o.client, factory, config)),
+				tasks.NewTaskSpec("Prometheus", tasks.NewPrometheusTask(o.client, factory, config)),
+				tasks.NewTaskSpec("Alertmanager", tasks.NewAlertmanagerTask(o.client, factory, config)),
+				tasks.NewTaskSpec("NodeExporter", tasks.NewNodeExporterTask(o.client, factory)),
+				tasks.NewTaskSpec("KubeStateMetrics", tasks.NewKubeStateMetricsTask(o.client, factory)),
+				tasks.NewTaskSpec("OpenshiftStateMetrics", tasks.NewOpenShiftStateMetricsTask(o.client, factory)),
+				tasks.NewTaskSpec("PrometheusAdapter", tasks.NewPrometheusAdapterTask(ctx, o.namespace, o.client, factory, config)),
+				tasks.NewTaskSpec("TelemeterClient", tasks.NewTelemeterClientTask(o.client, factory, config)),
+				tasks.NewTaskSpec("ThanosQuerier", tasks.NewThanosQuerierTask(o.client, factory, config)),
+				tasks.NewTaskSpec("ControlPlaneComponents", tasks.NewControlPlaneTask(o.client, factory, config)),
+				tasks.NewTaskSpec("ConsolePluginComponents", tasks.NewMonitoringPluginTask(o.client, factory, config)),
+				// TODO: maybe put the operator in the first group
+				tasks.NewUWMTaskSpec("PrometheusOperator", tasks.NewPrometheusOperatorUserWorkloadTask(o.client, factory, config)),
+				tasks.NewUWMTaskSpec("Prometheus", tasks.NewPrometheusUserWorkloadTask(o.client, factory, config)),
+				tasks.NewUWMTaskSpec("Alertmanager", tasks.NewAlertmanagerUserWorkloadTask(o.client, factory, config)),
+				tasks.NewUWMTaskSpec("ThanosRuler", tasks.NewThanosRulerUserWorkloadTask(o.client, factory, config)),
 			}),
 		// The shared configmap depends on resources being created by the previous tasks hence run it last.
 		tasks.NewTaskGroup(
@@ -717,16 +717,16 @@ func (o *Operator) sync(ctx context.Context, key string) error {
 			},
 		),
 	)
-	klog.Info("Updating ClusterOperator status to in progress.")
+	klog.Info("Updating ClusterOperator status to InProgress.")
 	err = o.client.StatusReporter().SetRollOutInProgress(ctx)
 	if err != nil {
-		klog.Errorf("error occurred while setting status to in progress: %v", err)
+		klog.Errorf("error occurred while setting status to InProgress: %v", err)
 	}
 
 	if taskErrors := tl.RunAll(ctx); len(taskErrors) > 0 {
-		report, failedTask := generateRunReportFromTaskErrors(taskErrors)
+		report := generateRunReportFromTaskErrors(taskErrors)
 		o.reportFailed(ctx, report)
-		return errors.Errorf("cluster monitoring update failed (reason: %s)", failedTask)
+		return errors.Errorf("cluster monitoring update failed (reason: %s)", report.available.Reason())
 	}
 
 	var degradedConditionMessage, degradedConditionReason string
@@ -996,14 +996,14 @@ func toStateErrors(err error) []*client.StateError {
 	return serrs
 }
 
-func generateRunReportFromTaskErrors(tge tasks.TaskGroupErrors) (runReport, string) {
-	failedTask := cmostr.ToPascalCase(tge[0].Name) + "Failed"
-	if len(tge) > 1 {
-		failedTask = "MultipleTasksFailed"
-	}
+// generateRunReportFromTaskErrors goes through the tasks errors and constructs a runReport
+// with the appropriate Degraded and Available conditions.
+func generateRunReportFromTaskErrors(tge tasks.TaskGroupErrors) runReport {
+	defaultReason := "MultipleTasksFailed"
+	var unavailableErrCount, degradedErrCount, unavailableUWMErrCount, degradedUWMErrCount int
 
-	degraded := &stateInfo{reason: failedTask, status: client.UnknownStatus}
-	available := &stateInfo{reason: failedTask, status: client.UnknownStatus}
+	degraded := &stateInfo{reason: defaultReason, status: client.UnknownStatus}
+	unavailable := &stateInfo{reason: defaultReason, status: client.UnknownStatus}
 
 	for _, terr := range tge {
 		// each task can return a single or multiple errors (as an Aggregate)
@@ -1011,35 +1011,53 @@ func generateRunReportFromTaskErrors(tge tasks.TaskGroupErrors) (runReport, stri
 		for _, serr := range toStateErrors(terr.Err) {
 			switch serr.State {
 			case client.DegradedState:
-				degraded.messages = append(degraded.messages, serr.Reason)
+				degradedErrCount++
+				if terr.UWMRelated {
+					degradedUWMErrCount++
+				}
+				degraded.messages = append(degraded.messages, fmt.Sprintf("%s: %s", terr.Name, serr.Reason))
 				if !serr.Unknown {
 					degraded.status = client.TrueStatus
 				}
 
 			case client.UnavailableState:
-				available.messages = append(available.messages, serr.Reason)
-				if !serr.Unknown {
-					available.status = client.FalseStatus
+				unavailableErrCount++
+				if terr.UWMRelated {
+					unavailableUWMErrCount++
 				}
+				unavailable.messages = append(unavailable.messages, fmt.Sprintf("%s: %s", terr.Name, serr.Reason))
+				if !serr.Unknown {
+					unavailable.status = client.FalseStatus
+				}
+			default:
+				klog.Errorf("StateError with an unsupported State: %s", serr.State)
 			}
 		}
 	}
 
-	rpt := runReport{}
-
-	if len(degraded.messages) != 0 {
-		rpt.degraded = degraded
-	} else {
-		rpt.degraded = asExpected(client.FalseStatus)
+	inferReason := func(uwmErrCount, totalErrCount int) string {
+		switch {
+		case len(tge) == 1:
+			return tge[0].Name + "Failed"
+		case uwmErrCount == totalErrCount:
+			return "UserWorkloadTasksFailed"
+		case uwmErrCount == 0:
+			return "PlatformTasksFailed"
+		default:
+			// If no errors to report, this will be ignored anyway
+			return defaultReason
+		}
 	}
 
-	if len(available.messages) != 0 {
-		rpt.available = available
-	} else {
-		rpt.available = asExpected(client.TrueStatus)
+	rpt := runReport{degraded: asExpected(client.FalseStatus), available: asExpected(client.TrueStatus)}
+	if degradedErrCount != 0 {
+		rpt.degraded = &stateInfo{reason: inferReason(degradedUWMErrCount, degradedErrCount), status: degraded.status, messages: degraded.messages}
+	}
+	if unavailableErrCount != 0 {
+		rpt.available = &stateInfo{reason: inferReason(unavailableUWMErrCount, unavailableErrCount), status: unavailable.status, messages: unavailable.messages}
 	}
 
-	return rpt, failedTask
+	return rpt
 }
 
 // stateInfo satisfies a client.StateInfo
