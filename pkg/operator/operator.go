@@ -150,6 +150,8 @@ const (
 
 	// Canonical name of the cluster-wide infrastructure resource.
 	clusterResourceName = "cluster"
+
+	UWMTaskPrefix = "UpdatingUserWorkload"
 )
 
 type Operator struct {
@@ -653,6 +655,18 @@ func getProxyReader(ctx context.Context, config *manifests.Config, proxyConfigSu
 	return clusterProxyConfig
 }
 
+// TaskName constructs the task's name from its target
+func TaskName(targetName string) string {
+	return "Updating" + targetName
+}
+
+// UWMTaskName constructs the UWM task's name from its target
+func UWMTaskName(targetName string) string {
+	return UWMTaskPrefix + targetName
+}
+
+// Having UWMTaskName is more explicit and keeps the signature short, but we could merge TaskName and UWMTaskName
+
 func (o *Operator) sync(ctx context.Context, key string) error {
 	config, err := o.Config(ctx, key)
 	if err != nil {
@@ -688,32 +702,32 @@ func (o *Operator) sync(ctx context.Context, key string) error {
 		// should also be created first because it is referenced by Prometheus.
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec("MetricsScrapingClientCA", tasks.NewMetricsClientCATask(o.client, factory, config)),
-				tasks.NewTaskSpec("PrometheusOperator", tasks.NewPrometheusOperatorTask(o.client, factory)),
+				tasks.NewTaskSpec(TaskName("MetricsScrapingClientCA"), tasks.NewMetricsClientCATask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("PrometheusOperator"), tasks.NewPrometheusOperatorTask(o.client, factory)),
 			}),
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec("ClusterMonitoringOperatorDeps", tasks.NewClusterMonitoringOperatorTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Prometheus", tasks.NewPrometheusTask(o.client, factory, config)),
-				tasks.NewTaskSpec("Alertmanager", tasks.NewAlertmanagerTask(o.client, factory, config)),
-				tasks.NewTaskSpec("NodeExporter", tasks.NewNodeExporterTask(o.client, factory)),
-				tasks.NewTaskSpec("KubeStateMetrics", tasks.NewKubeStateMetricsTask(o.client, factory)),
-				tasks.NewTaskSpec("OpenshiftStateMetrics", tasks.NewOpenShiftStateMetricsTask(o.client, factory)),
-				tasks.NewTaskSpec("PrometheusAdapter", tasks.NewPrometheusAdapterTask(ctx, o.namespace, o.client, factory, config)),
-				tasks.NewTaskSpec("TelemeterClient", tasks.NewTelemeterClientTask(o.client, factory, config)),
-				tasks.NewTaskSpec("ThanosQuerier", tasks.NewThanosQuerierTask(o.client, factory, config)),
-				tasks.NewTaskSpec("ControlPlaneComponents", tasks.NewControlPlaneTask(o.client, factory, config)),
-				tasks.NewTaskSpec("ConsolePluginComponents", tasks.NewMonitoringPluginTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("ClusterMonitoringOperatorDeps"), tasks.NewClusterMonitoringOperatorTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("Prometheus"), tasks.NewPrometheusTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("Alertmanager"), tasks.NewAlertmanagerTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("NodeExporter"), tasks.NewNodeExporterTask(o.client, factory)),
+				tasks.NewTaskSpec(TaskName("KubeStateMetrics"), tasks.NewKubeStateMetricsTask(o.client, factory)),
+				tasks.NewTaskSpec(TaskName("OpenshiftStateMetrics"), tasks.NewOpenShiftStateMetricsTask(o.client, factory)),
+				tasks.NewTaskSpec(TaskName("PrometheusAdapter"), tasks.NewPrometheusAdapterTask(ctx, o.namespace, o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("TelemeterClient"), tasks.NewTelemeterClientTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("ThanosQuerier"), tasks.NewThanosQuerierTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("ControlPlaneComponents"), tasks.NewControlPlaneTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("ConsolePluginComponents"), tasks.NewMonitoringPluginTask(o.client, factory, config)),
 				// TODO: maybe put the operator in the first group
-				tasks.NewUWMTaskSpec("PrometheusOperator", tasks.NewPrometheusOperatorUserWorkloadTask(o.client, factory, config)),
-				tasks.NewUWMTaskSpec("Prometheus", tasks.NewPrometheusUserWorkloadTask(o.client, factory, config)),
-				tasks.NewUWMTaskSpec("Alertmanager", tasks.NewAlertmanagerUserWorkloadTask(o.client, factory, config)),
-				tasks.NewUWMTaskSpec("ThanosRuler", tasks.NewThanosRulerUserWorkloadTask(o.client, factory, config)),
+				tasks.NewTaskSpec(UWMTaskName("PrometheusOperator"), tasks.NewPrometheusOperatorUserWorkloadTask(o.client, factory, config)),
+				tasks.NewTaskSpec(UWMTaskName("Prometheus"), tasks.NewPrometheusUserWorkloadTask(o.client, factory, config)),
+				tasks.NewTaskSpec(UWMTaskName("Alertmanager"), tasks.NewAlertmanagerUserWorkloadTask(o.client, factory, config)),
+				tasks.NewTaskSpec(UWMTaskName("ThanosRuler"), tasks.NewThanosRulerUserWorkloadTask(o.client, factory, config)),
 			}),
 		// The shared configmap depends on resources being created by the previous tasks hence run it last.
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec("Updating configuration sharing", tasks.NewConfigSharingTask(o.client, factory, config)),
+				tasks.NewTaskSpec(TaskName("ConfigurationSharing"), tasks.NewConfigSharingTask(o.client, factory, config)),
 			},
 		),
 	)
@@ -996,6 +1010,10 @@ func toStateErrors(err error) []*client.StateError {
 	return serrs
 }
 
+func IsUWMTaskErr(taskErrName string) bool {
+	return strings.HasPrefix(taskErrName, UWMTaskPrefix)
+}
+
 // generateRunReportFromTaskErrors goes through the tasks errors and constructs a runReport
 // with the appropriate Degraded and Available conditions.
 func generateRunReportFromTaskErrors(tge tasks.TaskGroupErrors) runReport {
@@ -1012,7 +1030,7 @@ func generateRunReportFromTaskErrors(tge tasks.TaskGroupErrors) runReport {
 			switch serr.State {
 			case client.DegradedState:
 				degradedErrCount++
-				if terr.UWMRelated {
+				if IsUWMTaskErr(terr.Name) {
 					degradedUWMErrCount++
 				}
 				degraded.messages = append(degraded.messages, fmt.Sprintf("%s: %s", terr.Name, serr.Reason))
@@ -1022,7 +1040,7 @@ func generateRunReportFromTaskErrors(tge tasks.TaskGroupErrors) runReport {
 
 			case client.UnavailableState:
 				unavailableErrCount++
-				if terr.UWMRelated {
+				if IsUWMTaskErr(terr.Name) {
 					unavailableUWMErrCount++
 				}
 				unavailable.messages = append(unavailable.messages, fmt.Sprintf("%s: %s", terr.Name, serr.Reason))

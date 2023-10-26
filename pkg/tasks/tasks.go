@@ -70,7 +70,7 @@ func (tg *TaskGroup) RunConcurrently(ctx context.Context) TaskGroupErrors {
 			err := ts.Task.Run(ctx)
 			if err != nil {
 				klog.Warningf("task %d of %d: %v failed: %v", i+1, tgLength, ts.Name, err)
-				errChan <- TaskErr{Err: err, UWMRelated: ts.UWMRelated, Name: ts.Name}
+				errChan <- TaskErr{Err: err, Name: ts.Name}
 			} else {
 				klog.V(2).Infof("ran task %d of %d: %v", i+1, tgLength, ts.Name)
 			}
@@ -102,29 +102,16 @@ type TaskGroup struct {
 	tasks []*TaskSpec
 }
 
-// NewTaskSpec creates a task that doesn't have a UWM component as a target
-func NewTaskSpec(target string, task Task) *TaskSpec {
+func NewTaskSpec(name string, task Task) *TaskSpec {
 	return &TaskSpec{
-		Name:       fmt.Sprintf("Updating%s", target),
-		UWMRelated: false,
-		Task:       task,
-	}
-}
-
-// NewUWMTaskSpec creates a task that has UWM components as a target
-func NewUWMTaskSpec(target string, task Task) *TaskSpec {
-	return &TaskSpec{
-		Name:       fmt.Sprintf("UpdatingUserWorkload%s", target),
-		UWMRelated: true,
-		Task:       task,
+		Name: name,
+		Task: task,
 	}
 }
 
 type TaskSpec struct {
 	Name string
-	// The task only concerns UWM components
-	UWMRelated bool
-	Task       Task
+	Task Task
 }
 
 type Task interface {
@@ -132,10 +119,8 @@ type Task interface {
 }
 
 type TaskErr struct {
-	Err error
-	// The error only concerns UWM components
-	UWMRelated bool
-	Name       string
+	Err  error
+	Name string
 }
 
 type TaskGroupErrors []TaskErr
@@ -146,7 +131,7 @@ func (tge TaskGroupErrors) Error() string {
 	}
 	messages := make([]string, 0, len(tge))
 	for _, err := range tge {
-		messages = append(messages, fmt.Sprintf("%v: %v", err.Name, err.Err))
+		messages = append(messages, fmt.Sprintf("%v: %v", strings.ToLower(err.Name), err.Err))
 	}
 	return strings.Join(messages, "\n")
 }

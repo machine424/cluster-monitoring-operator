@@ -304,9 +304,8 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "one failing UWM task with a generic error",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Foo failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadFoo",
+					Err:  fmt.Errorf("Foo failed"),
+					Name: "UpdatingUserWorkloadFoo",
 				},
 			},
 			expectedReport: runReport{
@@ -326,9 +325,8 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "one failing Platform task with a generic error",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Foo failed"),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Err:  fmt.Errorf("Foo failed"),
+					Name: "UpdatingFoo",
 				},
 			},
 			expectedReport: runReport{
@@ -348,9 +346,8 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "one failing UWM task with an unknown Degraded StateError",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        client.NewUnknownDegradedError("Foo failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadFoo",
+					Err:  client.NewUnknownDegradedError("Foo failed"),
+					Name: "UpdatingUserWorkloadFoo",
 				},
 			},
 			expectedReport: runReport{
@@ -366,9 +363,8 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "one failing Platform task with an Unavailable StateError",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        client.NewAvailabilityError("Foo failed"),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Err:  client.NewAvailabilityError("Foo failed"),
+					Name: "UpdatingFoo",
 				},
 			},
 			expectedReport: runReport{
@@ -390,8 +386,7 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 							client.NewAvailabilityError("Foo failed baz"),
 						},
 					),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Name: "UpdatingFoo",
 				},
 			},
 			expectedReport: runReport{
@@ -411,14 +406,12 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "multiple failing UWM tasks with generic errors",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Foo failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadFoo",
+					Err:  fmt.Errorf("Foo failed"),
+					Name: "UpdatingUserWorkloadFoo",
 				},
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Bar failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadBar",
+					Err:  fmt.Errorf("Bar failed"),
+					Name: "UpdatingUserWorkloadBar",
 				},
 			},
 			expectedReport: runReport{
@@ -438,14 +431,12 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "multiple failing Platform tasks with generic errors",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Foo failed"),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Err:  fmt.Errorf("Foo failed"),
+					Name: "UpdatingFoo",
 				},
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Bar failed"),
-					UWMRelated: false,
-					Name:       "UpdatingBar",
+					Err:  fmt.Errorf("Bar failed"),
+					Name: "UpdatingBar",
 				},
 			},
 			expectedReport: runReport{
@@ -465,11 +456,10 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "multiple failing tasks with generic errors",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        fmt.Errorf("Foo failed"),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Err:  fmt.Errorf("Foo failed"),
+					Name: "UpdatingFoo",
 				},
-				tasks.TaskErr{Err: fmt.Errorf("Bar failed"), UWMRelated: true, Name: "UpdatingUserWorkloadBar"},
+				tasks.TaskErr{Err: fmt.Errorf("Bar failed"), Name: "UpdatingUserWorkloadBar"},
 			},
 			expectedReport: runReport{
 				degraded: &stateInfo{
@@ -488,14 +478,12 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "multiple failing tasks with Degraded StateError",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        client.NewDegradedError("Foo failed"),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Err:  client.NewDegradedError("Foo failed"),
+					Name: "UpdatingFoo",
 				},
 				tasks.TaskErr{
-					Err:        client.NewDegradedError("Bar failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadBar",
+					Err:  client.NewDegradedError("Bar failed"),
+					Name: "UpdatingUserWorkloadBar",
 				},
 			},
 			expectedReport: runReport{
@@ -511,14 +499,12 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "multiple failing tasks with UWM Degraded StateError and Platform Unavailable StateError",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        client.NewDegradedError("Bar failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadBar",
+					Err:  client.NewDegradedError("Bar failed"),
+					Name: "UpdatingUserWorkloadBar",
 				},
 				tasks.TaskErr{
-					Err:        client.NewAvailabilityError("Foo failed"),
-					UWMRelated: false,
-					Name:       "UpdatingFoo",
+					Err:  client.NewAvailabilityError("Foo failed"),
+					Name: "UpdatingFoo",
 				},
 			},
 			expectedReport: runReport{
@@ -538,19 +524,16 @@ func TestGenerateRunReportFromTaskErrors(t *testing.T) {
 			name: "multiple failing tasks with UWM Unavailable StateError and Platform Degraded StateError",
 			taskGroupErrors: tasks.TaskGroupErrors{
 				tasks.TaskErr{
-					Err:        client.NewDegradedError("Bar failed"),
-					UWMRelated: false,
-					Name:       "UpdatingBar",
+					Err:  client.NewDegradedError("Bar failed"),
+					Name: "UpdatingBar",
 				},
 				tasks.TaskErr{
-					Err:        client.NewAvailabilityError("Foo failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadFoo",
+					Err:  client.NewAvailabilityError("Foo failed"),
+					Name: "UpdatingUserWorkloadFoo",
 				},
 				tasks.TaskErr{
-					Err:        client.NewUnknownAvailabiltyError("Baz failed"),
-					UWMRelated: true,
-					Name:       "UpdatingUserWorkloadBaz",
+					Err:  client.NewUnknownAvailabiltyError("Baz failed"),
+					Name: "UpdatingUserWorkloadBaz",
 				},
 			},
 			expectedReport: runReport{
