@@ -655,14 +655,12 @@ func getProxyReader(ctx context.Context, config *manifests.Config, proxyConfigSu
 	return clusterProxyConfig
 }
 
-// TaskName constructs the task's name from its target
-func TaskName(targetName string) string {
-	return "Updating" + targetName
+func NewTaskSpec(targetName string, task tasks.Task) *tasks.TaskSpec {
+	return tasks.NewTaskSpec("Updating"+targetName, task)
 }
 
-// UWMTaskName constructs the UWM task's name from its target
-func UWMTaskName(targetName string) string {
-	return UWMTaskPrefix + targetName
+func NewUWMTaskSpec(targetName string, task tasks.Task) *tasks.TaskSpec {
+	return NewTaskSpec(UWMTaskPrefix+targetName, task)
 }
 
 // Having UWMTaskName is more explicit and keeps the signature short, but we could merge TaskName and UWMTaskName
@@ -702,32 +700,32 @@ func (o *Operator) sync(ctx context.Context, key string) error {
 		// should also be created first because it is referenced by Prometheus.
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec(TaskName("MetricsScrapingClientCA"), tasks.NewMetricsClientCATask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("PrometheusOperator"), tasks.NewPrometheusOperatorTask(o.client, factory)),
+				NewTaskSpec("MetricsScrapingClientCA", tasks.NewMetricsClientCATask(o.client, factory, config)),
+				NewTaskSpec("PrometheusOperator", tasks.NewPrometheusOperatorTask(o.client, factory)),
 			}),
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec(TaskName("ClusterMonitoringOperatorDeps"), tasks.NewClusterMonitoringOperatorTask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("Prometheus"), tasks.NewPrometheusTask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("Alertmanager"), tasks.NewAlertmanagerTask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("NodeExporter"), tasks.NewNodeExporterTask(o.client, factory)),
-				tasks.NewTaskSpec(TaskName("KubeStateMetrics"), tasks.NewKubeStateMetricsTask(o.client, factory)),
-				tasks.NewTaskSpec(TaskName("OpenshiftStateMetrics"), tasks.NewOpenShiftStateMetricsTask(o.client, factory)),
-				tasks.NewTaskSpec(TaskName("PrometheusAdapter"), tasks.NewPrometheusAdapterTask(ctx, o.namespace, o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("TelemeterClient"), tasks.NewTelemeterClientTask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("ThanosQuerier"), tasks.NewThanosQuerierTask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("ControlPlaneComponents"), tasks.NewControlPlaneTask(o.client, factory, config)),
-				tasks.NewTaskSpec(TaskName("ConsolePluginComponents"), tasks.NewMonitoringPluginTask(o.client, factory, config)),
+				NewTaskSpec("ClusterMonitoringOperatorDeps", tasks.NewClusterMonitoringOperatorTask(o.client, factory, config)),
+				NewTaskSpec("Prometheus", tasks.NewPrometheusTask(o.client, factory, config)),
+				NewTaskSpec("Alertmanager", tasks.NewAlertmanagerTask(o.client, factory, config)),
+				NewTaskSpec("NodeExporter", tasks.NewNodeExporterTask(o.client, factory)),
+				NewTaskSpec("KubeStateMetrics", tasks.NewKubeStateMetricsTask(o.client, factory)),
+				NewTaskSpec("OpenshiftStateMetrics", tasks.NewOpenShiftStateMetricsTask(o.client, factory)),
+				NewTaskSpec("PrometheusAdapter", tasks.NewPrometheusAdapterTask(ctx, o.namespace, o.client, factory, config)),
+				NewTaskSpec("TelemeterClient", tasks.NewTelemeterClientTask(o.client, factory, config)),
+				NewTaskSpec("ThanosQuerier", tasks.NewThanosQuerierTask(o.client, factory, config)),
+				NewTaskSpec("ControlPlaneComponents", tasks.NewControlPlaneTask(o.client, factory, config)),
+				NewTaskSpec("ConsolePluginComponents", tasks.NewMonitoringPluginTask(o.client, factory, config)),
 				// TODO: maybe put the operator in the first group
-				tasks.NewTaskSpec(UWMTaskName("PrometheusOperator"), tasks.NewPrometheusOperatorUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec(UWMTaskName("Prometheus"), tasks.NewPrometheusUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec(UWMTaskName("Alertmanager"), tasks.NewAlertmanagerUserWorkloadTask(o.client, factory, config)),
-				tasks.NewTaskSpec(UWMTaskName("ThanosRuler"), tasks.NewThanosRulerUserWorkloadTask(o.client, factory, config)),
+				NewUWMTaskSpec("PrometheusOperator", tasks.NewPrometheusOperatorUserWorkloadTask(o.client, factory, config)),
+				NewUWMTaskSpec("Prometheus", tasks.NewPrometheusUserWorkloadTask(o.client, factory, config)),
+				NewUWMTaskSpec("Alertmanager", tasks.NewAlertmanagerUserWorkloadTask(o.client, factory, config)),
+				NewUWMTaskSpec("ThanosRuler", tasks.NewThanosRulerUserWorkloadTask(o.client, factory, config)),
 			}),
 		// The shared configmap depends on resources being created by the previous tasks hence run it last.
 		tasks.NewTaskGroup(
 			[]*tasks.TaskSpec{
-				tasks.NewTaskSpec(TaskName("ConfigurationSharing"), tasks.NewConfigSharingTask(o.client, factory, config)),
+				NewTaskSpec("ConfigurationSharing", tasks.NewConfigSharingTask(o.client, factory, config)),
 			},
 		),
 	)
