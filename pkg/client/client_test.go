@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -2236,12 +2237,94 @@ func TestPollUntil(t *testing.T) {
 	}, nil)
 	require.ErrorContains(t, err, "context deadline exceeded")
 
-	// the parent context times out.
-	var lastErr6 error
-	parentCtx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	err = testPoll(parentCtx, func(ctx context.Context) (bool, error) {
-		return false, nil
-	}, &lastErr6)
-	require.Error(t, parentCtx.Err())
+	// the parent context times out before poll times out.
+	parentCtx1, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	err = Poll(parentCtx1, func(ctx context.Context) (bool, error) {
+		// This also ensures that when the parent context is Done, the condition context is cancelled as well.
+		select {
+		case <-ctx.Done():
+			return false, nil
+		}
+	}, WithPollInterval(10*time.Millisecond), WithPollTimeout(time.Hour))
+	require.Error(t, parentCtx1.Err())
 	require.ErrorContains(t, err, "context deadline exceeded")
+
+	// irrelevant context cancellation related errors shouldn't override the previous accurate ones.
+	var lastErr6 error
+	err = Poll(context.Background(), func(ctx context.Context) (bool, error) {
+		check := func(innCtx context.Context)  (bool, error) {
+			// A "check" that returns when the passed context is Done.
+			// Such irrelevant error shouldn't hide the previous accurate errors that were caught below on previous loops.
+			time.Sleep(time.Millisecond) // Wait for the context to be Done
+			if innCtx.Err() != nil {
+				return false, fmt.Errorf("irrelevant error")
+			}
+			// After some work, it finds a more accurate error.
+			return false, fmt.Errorf("accurate error")
+		}
+
+		var done bool
+		done, lastErr6 = check(ctx)
+		return done, nil
+	}, WithPollInterval(10*time.Millisecond), WithPollTimeout(50*time.Millisecond), WithLastError(&lastErr6))
+	require.ErrorContains(t, err, "context deadline exceeded: accurate error")
+
+	// by design: a background operation, relying on the passed context to be cancelled, may outlive the poll timeout.
+	parentCtx2, cancelParentCtx2 := context.WithCancel(context.Background())
+	waitCh2 := make(chan struct{})
+	pollTimeout2 := 50*time.Millisecond
+	var wg sync.WaitGroup
+
+	err = Poll(parentCtx2, func(ctx context.Context) (bool, error) {
+		// Simulate some leaky background operation.
+		wg.Add(1)
+		go func(innCtx context.Context) {
+			for innCtx.Err() == nil {
+				time.Sleep(time.Millisecond)
+			}
+			wg.Done()
+		}(ctx)
+
+		return false, nil
+	}, WithPollInterval(10*time.Millisecond), WithPollTimeout(pollTimeout2))
+	require.ErrorContains(t, err, "context deadline exceeded")
+
+	go func(){
+		wg.Wait()
+		close(waitCh2)
+	}()
+
+	select {
+	case <-time.After(2*pollTimeout2):
+	case <-waitCh2:
+		require.FailNow(t, "the channel shouldn't be closed yet")
+	}
+	cancelParentCtx2()
+	<-waitCh2
+
+	// by design: a "condition" that relies on the passed context to be Done may make the poll hang.
+	parentCtx3, cancelParentCtx3 := context.WithCancel(context.Background())
+	waitCh3 := make(chan struct{})
+	pollTimeout3 := 50*time.Millisecond
+
+	go func() {
+		err = Poll(parentCtx3, func(ctx context.Context) (bool, error) {
+			select {
+			case <-ctx.Done():
+				close(waitCh3)
+				return false, nil
+			}
+		}, WithPollInterval(10*time.Millisecond), WithPollTimeout(pollTimeout3))
+		require.ErrorContains(t, err, "context deadline exceeded")
+	}()
+
+	select {
+	case <-time.After(2*pollTimeout3):
+	case <-waitCh3:
+		require.FailNow(t, "condition should make the poll hang")
+	}
+
+	// The poll was hanging, cancelling the parent context should unlock the "condition".
+	cancelParentCtx3()
+	<-waitCh3
 }
