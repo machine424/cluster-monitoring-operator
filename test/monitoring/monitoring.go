@@ -86,12 +86,14 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: hongyli@redhat.com
+	// maybe tested in TestClusterMonitorPrometheusK8Config
 	g.It("Author:hongyli-High-49073-Retention size settings for platform", func() {
 		checkRetention(oc, "openshift-monitoring", "prometheus-k8s", "storage.tsdb.retention.size=10GiB", platformLoadTime)
 		checkRetention(oc, "openshift-monitoring", "prometheus-k8s", "storage.tsdb.retention.time=45d", 20)
 	})
 
 	// author: hongyli@redhat.com
+	// there is assertUWMFederateEndpoint for uWM maybe for Platform as welll
 	g.It("Author:hongyli-High-49514-federate service endpoint and route of platform Prometheus", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -117,6 +119,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// maybe on the prom-operator side
 	g.It("Author:juzhao-LEVEL0-Medium-49172-Enable validating webhook for AlertmanagerConfig customer resource", func() {
 		var (
 			err                       error
@@ -158,6 +161,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	//author: tagao@redhat.com
+	// already have it in e2e
 	g.It("Author:tagao-Medium-42800-Allow configuration of the log level for Alertmanager in the CMO configmap", func() {
 		exutil.By("Check alertmanager container logs")
 		exutil.WaitAndGetSpecificPodLogs(oc, "openshift-monitoring", "alertmanager", "alertmanager-main-0", "level=debug")
@@ -225,6 +229,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	//author: tagao@redhat.com
+	// we have in e2 I think
 	g.It("Author:tagao-Medium-48432-Allow OpenShift users to configure request logging for Thanos Querier query endpoint", func() {
 		exutil.By("check thanos-querier pods are normal and able to see the request.logging-config setting")
 		exutil.AssertAllPodsToBeReady(oc, "openshift-monitoring")
@@ -249,6 +254,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// is v1beta1.metrics.k8s.io still supported
+	// maybe metrics/esrlts for this?
 	g.It("Author:juzhao-Low-43038-Should not have error for loading OpenAPI spec for v1beta1.metrics.k8s.io", func() {
 		var (
 			searchString string
@@ -269,6 +276,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	//author: tagao@redhat.com
+	// maybe doesn't cocern metrics-server anymore
 	g.It("Author:tagao-Low-55670-Prometheus should not collecting error messages for completed pods [Serial]", func() {
 		exutil.By("delete user-workload-monitoring-config/cluster-monitoring-config configmap at the end of a serial case")
 		defer deleteConfig(oc, "user-workload-monitoring-config", "openshift-user-workload-monitoring")
@@ -291,6 +299,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	//author: tagao@redhat.com
+	// (if it's slow, it can be easly moved to e2e)
 	g.It("Author:tagao-LEVEL0-Medium-55767-Missing metrics in kube-state-metrics", func() {
 		exutil.By("Get token of SA prometheus-k8s")
 		token := getSAToken(oc, "prometheus-k8s", "openshift-monitoring")
@@ -301,6 +310,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// see how much it takes (fixed in 3 normally)
 	g.It("Author:tagao-High-56168-PreChkUpgrade-NonPreRelease-Prometheus never sees endpoint propagation of a deleted pod", func() {
 		var (
 			ns          = "56168-upgrade-ns"
@@ -324,6 +334,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// see above
 	g.It("Author:tagao-High-56168-PstChkUpgrade-NonPreRelease-Prometheus never sees endpoint propagation of a deleted pod", func() {
 		exutil.By("get the ns name in PreChkUpgrade")
 		ns := "56168-upgrade-ns"
@@ -359,6 +370,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// consider if slow
 	g.It("ConnectedOnly-Author:tagao-LEVEL0-Medium-55696-add telemeter alert TelemeterClientFailures", func() {
 		exutil.By("check telemetry prometheusrule exists")
 		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("prometheusrules", "telemetry", "-n", "openshift-monitoring").Output()
@@ -374,6 +386,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// easily be moved to 2e2
 	g.It("Author:juzhao-Medium-62092-Don't fire NodeFilesystemAlmostOutOfSpace alert for certain tmpfs mount points", func() {
 		exutil.By("check NodeFilesystemAlmostOutOfSpace alert from node-exporter-rules prometheusrules")
 		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("prometheusrules", "node-exporter-rules", `-ojsonpath={.spec.groups[*].rules[?(@.alert=="NodeFilesystemAlmostOutOfSpace")].expr}`, "-n", "openshift-monitoring").Output()
@@ -383,6 +396,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// maybe in RBAC tests
 	g.It("Author:tagao-Medium-48350-create alert-routing-edit role to allow end users to manage alerting CR", func() {
 		var (
 			alertManagerConfig = filepath.Join(monitoringBaseDir, "valid-alertmanagerconfig.yaml")
@@ -429,6 +443,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// can be moved to e2e
 	g.It("Author:juzhao-Low-62957-Prometheus and Alertmanager should configure ExternalURL correctly", func() {
 		exutil.By("skip the case if there is not console operator enabled")
 		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusteroperators", "console").Output()
@@ -460,6 +475,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// failing, merge it skipped/disabled
 	g.It("Author:tagao-Medium-48942-validation for scrapeTimeout and relabel configs", func() {
 		var (
 			invalidServiceMonitor = filepath.Join(monitoringBaseDir, "invalid-ServiceMonitor.yaml")
@@ -496,6 +512,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// if slow, merge with e2e ones
 	g.It("Author:juzhao-Medium-62636-Graduate alert overrides and alert relabelings to GA", func() {
 		var (
 			alertingRule       = filepath.Join(monitoringBaseDir, "alertingRule.yaml")
@@ -533,6 +550,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+
 	g.It("Author:tagao-Low-67008-node-exporter: disable btrfs collector", func() {
 		exutil.By("Get token of SA prometheus-k8s")
 		token := getSAToken(oc, "prometheus-k8s", "openshift-monitoring")
@@ -546,6 +564,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// check if e2e is enough
 	g.It("Author:tagao-LEVEL0-Medium-68292-Limit the value of GOMAXPROCS on node-exporter to 4", func() {
 		exutil.By("check the gomaxprocs value in logs")
 		// % oc -n openshift-monitoring logs -l app.kubernetes.io/name=node-exporter --tail=-1 -c node-exporter | grep -o 'gomaxprocs=[0-9]*' | uniq | cut -d= -f2
@@ -569,6 +588,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// for rbac migration, check e2e
 	g.It("Author:tagao-Medium-69087-Replace OAuth-proxy container with kube-rbac-proxy in Thanos-Querier pod", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -624,6 +644,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// maybe TestClusterMonitorPrometheusK8Config?
 	g.It("Author:juzhao-Medium-69924-Set scrape.timestamp tolerance for prometheus", func() {
 		exutil.By("confirm in-cluster prometheus is created")
 		err := wait.PollUntilContextTimeout(context.TODO(), 10*time.Second, 180*time.Second, false, func(context.Context) (bool, error) {
@@ -660,6 +681,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// migrate to RBAC tests
 	g.It("Author:juzhao-Medium-69927-Allow to query alerts of application namespaces as an application user from command line", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -732,6 +754,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
+	// see above, for prom
 	g.It("Author:tagao-Medium-69195-Replace OAuth-proxy container with Kube-RBAC-proxy in Prometheus pod", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -860,6 +883,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// another rbac test
 	g.It("Author:juzhao-Medium-73294-add role.rbac.authorization.k8s.io/monitoring-alertmanager-view", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -904,6 +928,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
+	// check if e2e has this
 	g.It("Author:juzhao-Medium-73288-Enable request headers flags for metrics server", func() {
 		exutil.By("Check metrics-server deployment exists")
 		err := oc.AsAdmin().WithoutNamespace().Run("get").Args("deploy", "metrics-server", "-n", "openshift-monitoring").Execute()

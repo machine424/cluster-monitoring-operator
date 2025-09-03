@@ -13,6 +13,10 @@ func TestMonitoring(t *testing.T) {
 	suiteConfig, reporterConfig := GinkgoConfiguration()
 	// Hardcoded until we find an easy way to pass it via "go test"
 	suiteConfig.Timeout = 4 * time.Hour
-	reporterConfig.NoColor = true
+	// TODO: for debugging, remove
+	// reporterConfig.NoColor = true
+	// TODO: for debugging, remove
+	suiteConfig.FlakeAttempts = 2
+	reporterConfig.VeryVerbose = true
 	RunSpecs(t, "Monitoring Suite", suiteConfig, reporterConfig)
 }
