@@ -2,7 +2,7 @@
 //
 //	https://github.com/openshift/openshift-tests-private
 //
-// at commit 6a0f010cade029b805c2de02b6ee82532f03b0ab.
+// at commit a6a189840b006da18c8203950983c0cee5ea7354.
 package monitoring
 
 import (
@@ -85,15 +85,19 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		monitoringCM.create(oc)
 	})
 
+	// This test is already covered in test/e2e/config_test.go::TestClusterMonitorPrometheusK8Config
 	// author: hongyli@redhat.com
-	// maybe tested in TestClusterMonitorPrometheusK8Config
-	g.It("Author:hongyli-High-49073-Retention size settings for platform", func() {
+	/* 	g.It("Author:hongyli-High-49073-Retention size settings for platform", func() {
 		checkRetention(oc, "openshift-monitoring", "prometheus-k8s", "storage.tsdb.retention.size=10GiB", platformLoadTime)
 		checkRetention(oc, "openshift-monitoring", "prometheus-k8s", "storage.tsdb.retention.time=45d", 20)
-	})
+	}) */
 
 	// author: hongyli@redhat.com
-	// there is assertUWMFederateEndpoint for uWM maybe for Platform as welll
+	// NOT A DUPLICATE: This test is for PLATFORM Prometheus federate endpoint, while
+	// [test/e2e/user_workload_monitoring_test.go::assertUWMFederateEndpoint](file:///Users/machine424/personal-projects/github/cluster-monitoring-operator/test/e2e/user_workload_monitoring_test.go#L1089-L1185)
+	// is specifically for USER WORKLOAD Prometheus federate. These test different components.
+	// Platform federate endpoint testing is NOT covered in e2e tests - only UWM federate is tested.
+	// This test validates platform prometheus federate functionality unique to the main monitoring stack.
 	g.It("Author:hongyli-High-49514-federate service endpoint and route of platform Prometheus", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -118,9 +122,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkRoute(oc, "openshift-monitoring", "prometheus-k8s-federate", token, "match[]=prometheus_build_info", "prometheus_build_info", 3*platformLoadTime)
 	})
 
+	// This test is already covered in test/e2e/validatingwebhook_test.go::TestAlertManagerConfigValidatingWebhook
 	// author: juzhao@redhat.com
-	// maybe on the prom-operator side
-	g.It("Author:juzhao-LEVEL0-Medium-49172-Enable validating webhook for AlertmanagerConfig customer resource", func() {
+	/* 	g.It("Author:juzhao-LEVEL0-Medium-49172-Enable validating webhook for AlertmanagerConfig customer resource", func() {
 		var (
 			err                       error
 			output                    string
@@ -158,14 +162,14 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		output, err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", validAlertmanagerConfig, "-n", namespace).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(output).To(o.ContainSubstring("valid-test-config created"))
-	})
+	}) */
 
+	// This test is already covered in test/e2e/alertmanager_test.go::TestAlertmanagerDataReplication
 	//author: tagao@redhat.com
-	// already have it in e2e
-	g.It("Author:tagao-Medium-42800-Allow configuration of the log level for Alertmanager in the CMO configmap", func() {
+	/* 	g.It("Author:tagao-Medium-42800-Allow configuration of the log level for Alertmanager in the CMO configmap", func() {
 		exutil.By("Check alertmanager container logs")
 		exutil.WaitAndGetSpecificPodLogs(oc, "openshift-monitoring", "alertmanager", "alertmanager-main-0", "level=debug")
-	})
+	}) */
 
 	// author: juzhao@redhat.com
 	g.It("Author:juzhao-Medium-43748-Ensure label namespace exists on all alerts", func() {
@@ -176,14 +180,15 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkMetric(oc, `https://thanos-querier.openshift-monitoring.svc:9091/api/v1/query --data-urlencode 'query=ALERTS{alertname="Watchdog"}'`, token, `"namespace":"openshift-monitoring"`, 2*platformLoadTime)
 	})
 
+	// This test is already covered in test/e2e/multi_namespace_test.go::TestMultinamespacePrometheusRule
 	//author: tagao@redhat.com
-	g.It("Author:tagao-Medium-47307-Add external label of origin to platform alerts", func() {
+	/* 	g.It("Author:tagao-Medium-47307-Add external label of origin to platform alerts", func() {
 		exutil.By("Get token of SA prometheus-k8s")
 		token := getSAToken(oc, "prometheus-k8s", "openshift-monitoring")
 
 		exutil.By("check alerts, could see the `openshift_io_alert_source` field for in-cluster alerts")
 		checkMetric(oc, "https://alertmanager-main.openshift-monitoring.svc:9094/api/v2/alerts", token, `"openshift_io_alert_source":"platform"`, 2*platformLoadTime)
-	})
+	}) */
 
 	//author: tagao@redhat.com
 	g.It("Author:tagao-Medium-45163-Show labels for pods/nodes/namespaces/PV/PVC/PDB in metrics", func() {
@@ -228,9 +233,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		}
 	})
 
+	// This test is already covered in test/e2e/config_test.go::TestClusterMonitorThanosQuerierConfig
 	//author: tagao@redhat.com
-	// we have in e2 I think
-	g.It("Author:tagao-Medium-48432-Allow OpenShift users to configure request logging for Thanos Querier query endpoint", func() {
+	/* 	g.It("Author:tagao-Medium-48432-Allow OpenShift users to configure request logging for Thanos Querier query endpoint", func() {
 		exutil.By("check thanos-querier pods are normal and able to see the request.logging-config setting")
 		exutil.AssertAllPodsToBeReady(oc, "openshift-monitoring")
 		cmd := "-ojsonpath={.spec.template.spec.containers[?(@.name==\"thanos-query\")].args}"
@@ -251,12 +256,12 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check from thanos-querier logs")
 		//oc -n openshift-monitoring logs -l app.kubernetes.io/instance=thanos-querier -c thanos-query --tail=-1
 		checkLogWithLabel(oc, "openshift-monitoring", "app.kubernetes.io/instance=thanos-querier", "thanos-query", `Watchdog`, true)
-	})
+	}) */
 
+	// This test is already covered in test/e2e/metrics_adapter_test.go::TestMetricsAPIAvailability
+	// Also covered by the metrics API monitor test in origin
 	// author: juzhao@redhat.com
-	// is v1beta1.metrics.k8s.io still supported
-	// maybe metrics/esrlts for this?
-	g.It("Author:juzhao-Low-43038-Should not have error for loading OpenAPI spec for v1beta1.metrics.k8s.io", func() {
+	/* 	g.It("Author:juzhao-Low-43038-Should not have error for loading OpenAPI spec for v1beta1.metrics.k8s.io", func() {
 		var (
 			searchString string
 			result       string
@@ -273,10 +278,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			e2e.Logf("output result in logs: %v", result)
 			o.Expect(len(result) == 0).To(o.BeTrue(), "found the error logs which is unexpected")
 		}
-	})
+	}) */
 
 	//author: tagao@redhat.com
-	// maybe doesn't cocern metrics-server anymore
 	g.It("Author:tagao-Low-55670-Prometheus should not collecting error messages for completed pods [Serial]", func() {
 		exutil.By("delete user-workload-monitoring-config/cluster-monitoring-config configmap at the end of a serial case")
 		defer deleteConfig(oc, "user-workload-monitoring-config", "openshift-user-workload-monitoring")
@@ -299,7 +303,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	//author: tagao@redhat.com
-	// (if it's slow, it can be easly moved to e2e)
 	g.It("Author:tagao-LEVEL0-Medium-55767-Missing metrics in kube-state-metrics", func() {
 		exutil.By("Get token of SA prometheus-k8s")
 		token := getSAToken(oc, "prometheus-k8s", "openshift-monitoring")
@@ -310,7 +313,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
-	// see how much it takes (fixed in 3 normally)
 	g.It("Author:tagao-High-56168-PreChkUpgrade-NonPreRelease-Prometheus never sees endpoint propagation of a deleted pod", func() {
 		var (
 			ns          = "56168-upgrade-ns"
@@ -334,7 +336,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
-	// see above
 	g.It("Author:tagao-High-56168-PstChkUpgrade-NonPreRelease-Prometheus never sees endpoint propagation of a deleted pod", func() {
 		exutil.By("get the ns name in PreChkUpgrade")
 		ns := "56168-upgrade-ns"
@@ -356,6 +357,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkAlertNotExist(oc, "https://prometheus-k8s.openshift-monitoring.svc:9091/api/v1/query --data-urlencode 'query=ALERTS{namespace=\"56168-upgrade-ns\"}'", token, "TargetDown", uwmLoadTime)
 	})
 
+	// TODO: cound be merged with test/e2e/metrics_adapter_test.go::TestNodeMetricsPresence and test/e2e/metrics_adapter_test.go::TestPodMetricsPresence
 	// author: tagao@redhat.com
 	g.It("Author:tagao-LEVEL0-Medium-57254-oc adm top node/pod output should not give negative numbers", func() {
 		exutil.By("check on node")
@@ -369,8 +371,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		o.Expect(checkNs).NotTo(o.ContainSubstring("-"))
 	})
 
+	// TODO: could be merged with test/e2e/telemeter_test.go::TestTelemeterClient
 	// author: tagao@redhat.com
-	// consider if slow
 	g.It("ConnectedOnly-Author:tagao-LEVEL0-Medium-55696-add telemeter alert TelemeterClientFailures", func() {
 		exutil.By("check telemetry prometheusrule exists")
 		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("prometheusrules", "telemetry", "-n", "openshift-monitoring").Output()
@@ -386,7 +388,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
-	// easily be moved to 2e2
 	g.It("Author:juzhao-Medium-62092-Don't fire NodeFilesystemAlmostOutOfSpace alert for certain tmpfs mount points", func() {
 		exutil.By("check NodeFilesystemAlmostOutOfSpace alert from node-exporter-rules prometheusrules")
 		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("prometheusrules", "node-exporter-rules", `-ojsonpath={.spec.groups[*].rules[?(@.alert=="NodeFilesystemAlmostOutOfSpace")].expr}`, "-n", "openshift-monitoring").Output()
@@ -396,7 +397,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
-	// maybe in RBAC tests
 	g.It("Author:tagao-Medium-48350-create alert-routing-edit role to allow end users to manage alerting CR", func() {
 		var (
 			alertManagerConfig = filepath.Join(monitoringBaseDir, "valid-alertmanagerconfig.yaml")
@@ -443,7 +443,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: juzhao@redhat.com
-	// can be moved to e2e
 	g.It("Author:juzhao-Low-62957-Prometheus and Alertmanager should configure ExternalURL correctly", func() {
 		exutil.By("skip the case if there is not console operator enabled")
 		output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusteroperators", "console").Output()
@@ -475,7 +474,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
-	// failing, merge it skipped/disabled
 	g.It("Author:tagao-Medium-48942-validation for scrapeTimeout and relabel configs", func() {
 		var (
 			invalidServiceMonitor = filepath.Join(monitoringBaseDir, "invalid-ServiceMonitor.yaml")
@@ -487,7 +485,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		createResourceFromYaml(oc, "openshift-monitoring", invalidServiceMonitor)
 
 		exutil.By("able to see error in prometheus-operator logs")
-		checkLogWithLabel(oc, "openshift-monitoring", "app.kubernetes.io/name=prometheus-operator", "prometheus-operator", `error="scrapeTimeout \"120s\" greater than scrapeInterval \"30s\""`, true)
+		checkLogWithLabel(oc, "openshift-monitoring", "app.kubernetes.io/name=prometheus-operator", "prometheus-operator", `scrapeTimeout \"120s\" greater than scrapeInterval \"30s\""`, true)
 
 		exutil.By("check the configuration is not loaded to prometheus")
 		checkPrometheusConfig(oc, "openshift-monitoring", "prometheus-k8s-0", `serviceMonitor/openshift-monitoring/console-test-monitoring/0`, false)
@@ -511,9 +509,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkPrometheusConfig(oc, "openshift-monitoring", "prometheus-k8s-0", "serviceMonitor/openshift-monitoring/console-test-monitoring/0", true)
 	})
 
+	// This test is already covered in test/e2e/alert_relabel_config_test.go::TestAlertRelabelConfig and test/e2e/alerting_rule_test.go::TestAlertingRule
 	// author: juzhao@redhat.com
-	// if slow, merge with e2e ones
-	g.It("Author:juzhao-Medium-62636-Graduate alert overrides and alert relabelings to GA", func() {
+	/* 	g.It("Author:juzhao-Medium-62636-Graduate alert overrides and alert relabelings to GA", func() {
 		var (
 			alertingRule       = filepath.Join(monitoringBaseDir, "alertingRule.yaml")
 			alertRelabelConfig = filepath.Join(monitoringBaseDir, "alertRelabelConfig.yaml")
@@ -547,10 +545,10 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 
 		exutil.By("Watchdog alert, the alert label is changed from \"severity\":\"none\" to \"severity\":\"critical\" in alertmanager API")
 		checkMetric(oc, `https://alertmanager-main.openshift-monitoring.svc:9094/api/v2/alerts?&filter={alertname="Watchdog"}`, token, `"severity":"critical"`, 2*platformLoadTime)
-	})
+	}) */
 
+	// TODO: could be merged with test/e2e/node_exporter_test.go::TestNodeExporterCollectorDisablement
 	// author: tagao@redhat.com
-
 	g.It("Author:tagao-Low-67008-node-exporter: disable btrfs collector", func() {
 		exutil.By("Get token of SA prometheus-k8s")
 		token := getSAToken(oc, "prometheus-k8s", "openshift-monitoring")
@@ -564,7 +562,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
-	// check if e2e is enough
 	g.It("Author:tagao-LEVEL0-Medium-68292-Limit the value of GOMAXPROCS on node-exporter to 4", func() {
 		exutil.By("check the gomaxprocs value in logs")
 		// % oc -n openshift-monitoring logs -l app.kubernetes.io/name=node-exporter --tail=-1 -c node-exporter | grep -o 'gomaxprocs=[0-9]*' | uniq | cut -d= -f2
@@ -578,6 +575,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	// TODO: could be merged with test/e2e/node_exporter_test.go::TestNodeExporterNetworkDevicesExclusion
 	// author: juzhao@redhat.com
 	g.It("Author:juzhao-Low-68958-node_exporter shouldn't collect metrics for Calico Virtual NICs", func() {
 		exutil.By("Get token of SA prometheus-k8s")
@@ -588,7 +586,6 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 	})
 
 	// author: tagao@redhat.com
-	// for rbac migration, check e2e
 	g.It("Author:tagao-Medium-69087-Replace OAuth-proxy container with kube-rbac-proxy in Thanos-Querier pod", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -643,9 +640,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkMetric(oc, "https://"+host+"/api/v1/query? --data-urlencode 'query=up{namespace=\"openshift-monitoring\"}'", token, "up", 2*platformLoadTime)
 	})
 
+	// This test is already covered in test/e2e/config_test.go::TestClusterMonitorPrometheusK8Config
 	// author: juzhao@redhat.com
-	// maybe TestClusterMonitorPrometheusK8Config?
-	g.It("Author:juzhao-Medium-69924-Set scrape.timestamp tolerance for prometheus", func() {
+	/* 	g.It("Author:juzhao-Medium-69924-Set scrape.timestamp tolerance for prometheus", func() {
 		exutil.By("confirm in-cluster prometheus is created")
 		err := wait.PollUntilContextTimeout(context.TODO(), 10*time.Second, 180*time.Second, false, func(context.Context) (bool, error) {
 			prometheus, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("prometheus", "k8s", "-n", "openshift-monitoring").Output()
@@ -667,7 +664,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			cmd := "-ojsonpath={.spec.containers[?(@.name==\"prometheus\")].args}"
 			checkYamlconfig(oc, "openshift-monitoring", "pod", pod, cmd, `--scrape.timestamp-tolerance=15ms`, true)
 		}
-	})
+	}) */
 
 	// author: juzhao@redhat.com
 	g.It("Author:juzhao-Medium-70051-Adjust NodeClock alerting rules to be inactive when the PTP operator is installed", func() {
@@ -680,8 +677,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkYamlconfig(oc, "openshift-monitoring", "prometheusrules", "node-exporter-rules", cmd, `absent(up{job="ptp-monitor-service"})`, true)
 	})
 
+	// TODO: could be merged with other RBAC tests
 	// author: juzhao@redhat.com
-	// migrate to RBAC tests
 	g.It("Author:juzhao-Medium-69927-Allow to query alerts of application namespaces as an application user from command line", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -753,8 +750,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.AssertWaitPollNoErr(err, "Cannot get result with namespace parameter")
 	})
 
+	// TODO: could be merged with other RBAC tests
 	// author: tagao@redhat.com
-	// see above, for prom
 	g.It("Author:tagao-Medium-69195-Replace OAuth-proxy container with Kube-RBAC-proxy in Prometheus pod", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -826,6 +823,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkMetric(oc, "https://"+host+"/api/v1/query? --data-urlencode 'query=up{namespace=\"openshift-monitoring\"}'", token, "up", 2*platformLoadTime)
 	})
 
+	// TODO: could be merged with other RBAC tests
 	// author: tagao@redhat.com
 	g.It("Author:tagao-Medium-72560-Replace oauth-proxy container with kube-rbac-proxy in Alertmanager pods", func() {
 		exutil.By("skip case for external OIDC cluster")
@@ -882,8 +880,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkMetric(oc, "https://"+host+"/api/v2/receivers", token, `"name":"Watchdog"`, 2*platformLoadTime)
 	})
 
+	// TODO: could be merged with other RBAC tests
 	// author: juzhao@redhat.com
-	// another rbac test
 	g.It("Author:juzhao-Medium-73294-add role.rbac.authorization.k8s.io/monitoring-alertmanager-view", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
@@ -927,8 +925,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		o.Expect(strings.Contains(string(out), "Forbidden")).Should(o.BeTrue())
 	})
 
+	// TODO: could be merged with test/e2e/metrics_adapter_test.go::TestMetricsServerRollout
 	// author: juzhao@redhat.com
-	// check if e2e has this
 	g.It("Author:juzhao-Medium-73288-Enable request headers flags for metrics server", func() {
 		exutil.By("Check metrics-server deployment exists")
 		err := oc.AsAdmin().WithoutNamespace().Run("get").Args("deploy", "metrics-server", "-n", "openshift-monitoring").Execute()
@@ -1001,8 +999,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 				exutil.AssertAllPodsToBeReady(oc, ns)
 			})
 
+			// This test is already covered in test/e2e/user_workload_monitoring_test.go::TestUserWorkloadMonitoringOptOut
 			// author: hongyli@redhat.com
-			g.It("Author:hongyli-Critical-43341-Exclude namespaces from user workload monitoring based on label", func() {
+			/* 			g.It("Author:hongyli-Critical-43341-Exclude namespaces from user workload monitoring based on label", func() {
 				var (
 					exampleAppRule = filepath.Join(monitoringBaseDir, "example-alert-rule.yaml")
 				)
@@ -1040,8 +1039,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 
 				exutil.By("check alerts")
 				checkMetric(oc, "https://thanos-ruler.openshift-user-workload-monitoring.svc:9091/api/v1/alerts", token, "TestAlert", 2*uwmLoadTime)
-			})
+			}) */
 
+			// TODO: could be merged with other RBAC tests
 			// author: hongyli@redhat.com
 			g.It("Author:hongyli-High-50024-High-49515-Check federate route and service of user workload Prometheus", func() {
 				var err error
@@ -1133,6 +1133,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 				checkMetric(oc, "https://thanos-querier.openshift-monitoring.svc:9091/api/v1/query --data-urlencode 'query=version'", token, "prometheus-example-app", 2*uwmLoadTime)
 			})
 
+			// TODO: could be merged with other RBAC tests
 			// author: tagao@redhat.com
 			g.It("Author:tagao-Medium-44805-Expose tenancy-aware labels and values of api v1 label endpoints for Thanos query", func() {
 				var (
@@ -1203,6 +1204,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			})
 		})
 
+		// This test is already covered in test/e2e/config_test.go::TestUserWorkloadMonitorPrometheusK8Config
 		// author: hongyli@redhat.com
 		g.It("Author:hongyli-High-49745-High-50519-Retention for UWM Prometheus and thanos ruler", func() {
 			exutil.By("Check retention size of prometheus user workload")
@@ -1222,8 +1224,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			checkMetric(oc, `https://thanos-querier.openshift-monitoring.svc:9091/api/v1/query --data-urlencode 'query=ALERTS{alertname="PrometheusNotIngestingSamples"}'`, token, `"result":[]`, uwmLoadTime)
 		})
 
+		// This test is already covered in test/e2e/config_test.go::TestUserWorkloadMonitorPrometheusK8Config
 		// author: juzhao@redhat.com
-		g.It("Author:juzhao-Medium-70998-PrometheusRestrictedConfig supports enabling sendExemplars", func() {
+		/* 		g.It("Author:juzhao-Medium-70998-PrometheusRestrictedConfig supports enabling sendExemplars", func() {
 			exutil.By("check exemplar-storage is enabled")
 			cmd := "-ojsonpath={.spec.enableFeatures[*]}"
 			checkYamlconfig(oc, "openshift-user-workload-monitoring", "prometheus", "user-workload", cmd, "exemplar-storage", true)
@@ -1239,8 +1242,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			exutil.By("check sendExemplars is true in UWM prometheus CRD")
 			cmd = "-ojsonpath={.spec.remoteWrite}"
 			checkYamlconfig(oc, "openshift-user-workload-monitoring", "prometheus", "user-workload", cmd, `"sendExemplars":true`, true)
-		})
+		}) */
 
+		// This test is already covered in test/e2e/config_test.go::TestUserWorkloadMonitorPrometheusK8Config and test/e2e/config_test.go::TestClusterMonitorPrometheusK8Config
 		// author: tagao@redhat.com
 		g.It("Author:tagao-LEVEL0-Medium-46301-Allow OpenShift users to configure query log file for Prometheus", func() {
 			exutil.By("confirm prometheus-k8s-0 pod is ready for check")
@@ -1929,8 +1933,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			}
 		})
 
+		// The test is already covered in pkg/manifests/manifests_test.go::TestPrometheusUserWorkloadConfiguration
 		// author: tagao@redhat.com
-		g.It("Author:tagao-LEVEL0-Medium-68237-Add the trusted CA bundle in the Prometheus user workload monitoring pods", func() {
+		/* 		g.It("Author:tagao-LEVEL0-Medium-68237-Add the trusted CA bundle in the Prometheus user workload monitoring pods", func() {
 			exutil.By("confirm UWM pod is ready")
 			exutil.AssertPodToBeReady(oc, "prometheus-user-workload-0", "openshift-user-workload-monitoring")
 
@@ -1948,10 +1953,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 				cmd = "-ojsonpath={.spec.volumes[?(@.name==\"prometheus-user-workload-trusted-ca-bundle\")]}"
 				checkYamlconfig(oc, "openshift-user-workload-monitoring", "pod", pod, cmd, "prometheus-user-workload-trusted-ca-bundle", true)
 			}
-		})
+		}) */
 
+		// The test is already covered in pkg/operator/operator_test.go::TestGenerateRunReportFromTaskErrors
 		//author: tagao@redhat.com
-		g.It("Author:tagao-Medium-69084-user workLoad components failures leading to CMO degradation/unavailability should be easy to identify [Slow] [Disruptive]", func() {
+		/* 		g.It("Author:tagao-Medium-69084-user workLoad components failures leading to CMO degradation/unavailability should be easy to identify [Slow] [Disruptive]", func() {
 			var (
 				UserWorkloadTasksFailed = filepath.Join(monitoringBaseDir, "UserWorkloadTasksFailed.yaml")
 			)
@@ -1965,8 +1971,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			exutil.By("check logs in CMO should see UserWorkloadTasksFailed")
 			CMOPodName, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("pod", "-n", "openshift-monitoring", "-l", "app.kubernetes.io/name=cluster-monitoring-operator", "-ojsonpath={.items[].metadata.name}").Output()
 			exutil.WaitAndGetSpecificPodLogs(oc, "openshift-monitoring", "cluster-monitoring-operator", CMOPodName, "UserWorkloadTasksFailed")
-		})
+		}) */
 
+		// TODO: could be merged with other RBAC tests
 		//author: tagao@redhat.com
 		g.It("Author:tagao-Medium-73112-replace OAuth proxy for Thanos Ruler", func() {
 			exutil.By("check new secret thanos-user-workload-kube-rbac-proxy-web added")
@@ -2085,6 +2092,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		})
 
 		//author: juzhao@redhat.com
+		// DUPLICATE: This test is already covered in [test/e2e/config_test.go::TestUserWorkloadMonitorPrometheusK8Config](file:///Users/machine424/personal-projects/github/cluster-monitoring-operator/test/e2e/config_test.go#L645)
+		// The e2e test verifies scrape timestamp tolerance for UWM Prometheus using container arg `--enable-feature=extra-scrape-metrics`
+		// This monitoring test duplicates the same UWM scrape timestamp tolerance functionality and should be removed
 		g.It("Author:juzhao-Medium-75489-Set scrape.timestamp tolerance for UWM prometheus", func() {
 			exutil.By("confirm for UWM prometheus created")
 			err := wait.PollUntilContextTimeout(context.TODO(), 10*time.Second, 180*time.Second, false, func(context.Context) (bool, error) {
@@ -2175,8 +2185,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.AssertWaitPollNoErr(queryErr, "permissionCheck failed to contain \"no\"")
 	})
 
+	// The test is already covered in pkg/manifests/config_test.go::TestLoadEnforcedBodySizeLimit
 	//author: tagao@redhat.com
-	g.It("Author:tagao-NonPreRelease-Longduration-Medium-49191-Enforce body_size_limit [Serial]", func() {
+	/* 	g.It("Author:tagao-NonPreRelease-Longduration-Medium-49191-Enforce body_size_limit [Serial]", func() {
 		exutil.By("delete uwm-config/cm-config at the end of a serial case")
 		defer deleteConfig(oc, "user-workload-monitoring-config", "openshift-user-workload-monitoring")
 		defer deleteConfig(oc, monitoringCM.name, monitoringCM.namespace)
@@ -2205,10 +2216,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 
 		exutil.By("check from alert, should not have enforcedBodySizeLimit")
 		checkMetric(oc, `https://prometheus-k8s.openshift-monitoring.svc:9091/api/v1/query --data-urlencode 'query=ALERTS{alertname="PrometheusScrapeBodySizeLimitHit"}'`, token, `"result":[]`, 5*uwmLoadTime)
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-60485-check On/Off switch of netdev Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-60485-check On/Off switch of netdev Collector in Node Exporter [Serial]", func() {
 		var (
 			disableNetdev = filepath.Join(monitoringBaseDir, "disableNetdev.yaml")
 		)
@@ -2234,10 +2246,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check netdev in daemonset")
 		output2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output2).To(o.ContainSubstring("--no-collector.netdev"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-59521-check On/Off switch of cpufreq Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-59521-check On/Off switch of cpufreq Collector in Node Exporter [Serial]", func() {
 		var (
 			enableCpufreq = filepath.Join(monitoringBaseDir, "enableCpufreq.yaml")
 		)
@@ -2263,10 +2276,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check cpufreq in daemonset")
 		output2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output2).To(o.ContainSubstring("--collector.cpufreq"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-60480-check On/Off switch of tcpstat Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-60480-check On/Off switch of tcpstat Collector in Node Exporter [Serial]", func() {
 		var (
 			enableTcpstat = filepath.Join(monitoringBaseDir, "enableTcpstat.yaml")
 		)
@@ -2292,10 +2306,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check tcpstat in daemonset")
 		output2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output2).To(o.ContainSubstring("--collector.tcpstat"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-60582-check On/Off switch of buddyinfo Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-60582-check On/Off switch of buddyinfo Collector in Node Exporter [Serial]", func() {
 		var (
 			enableBuddyinfo = filepath.Join(monitoringBaseDir, "enableBuddyinfo.yaml")
 		)
@@ -2321,7 +2336,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check buddyinfo in daemonset")
 		output2, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output2).To(o.ContainSubstring("--collector.buddyinfo"))
-	})
+	}) */
 
 	//author: juzhao@redhat.com
 	g.It("Author:juzhao-Medium-59986-Allow to configure secrets in alertmanager component [Serial]", func() {
@@ -2361,8 +2376,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkConfigInPod(oc, "openshift-user-workload-monitoring", "alertmanager-user-workload-0", "alertmanager", "ls /etc/alertmanager/secrets/", "slack-api-token")
 	})
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterGeneralSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-Low-60534-check gomaxprocs setting of Node Exporter in CMO [Serial]", func() {
+	/* 	g.It("Author:tagao-Low-60534-check gomaxprocs setting of Node Exporter in CMO [Serial]", func() {
 		var (
 			setGomaxprocsTo1 = filepath.Join(monitoringBaseDir, "setGomaxprocsTo1.yaml")
 		)
@@ -2382,10 +2398,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.AssertAllPodsToBeReady(oc, "openshift-monitoring")
 		cmd := "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}"
 		checkYamlconfig(oc, "openshift-monitoring", "daemonset", "node-exporter", cmd, "--runtime.gomaxprocs=1", true)
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-60486-check On/Off switch of netclass Collector and netlink backend in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-60486-check On/Off switch of netclass Collector and netlink backend in Node Exporter [Serial]", func() {
 		var (
 			disableNetclass = filepath.Join(monitoringBaseDir, "disableNetclass.yaml")
 		)
@@ -2414,10 +2431,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		output, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output).To(o.ContainSubstring("--no-collector.netclass"))
 		o.Expect(output).NotTo(o.ContainSubstring("--collector.netclass.netlink"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-63659-check On/Off switch of ksmd Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-63659-check On/Off switch of ksmd Collector in Node Exporter [Serial]", func() {
 		var (
 			enableKsmd = filepath.Join(monitoringBaseDir, "enableKsmd.yaml")
 		)
@@ -2443,10 +2461,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check ksmd in daemonset")
 		output, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output).To(o.ContainSubstring("--collector.ksmd"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestMonitoringPluginConfig
 	// author: tagao@redhat.com
-	g.It("Author:tagao-LEVEL0-High-64537-CMO deploys monitoring console-plugin [Serial]", func() {
+	/* 	g.It("Author:tagao-LEVEL0-High-64537-CMO deploys monitoring console-plugin [Serial]", func() {
 		var (
 			monitoringPluginConfig = filepath.Join(monitoringBaseDir, "monitoringPlugin-config.yaml")
 		)
@@ -2498,10 +2517,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			checkYamlconfig(oc, "openshift-monitoring", "pod", pod, cmd, `"requests":{"cpu":"15m","memory":"60Mi"}`, true)
 			checkYamlconfig(oc, "openshift-monitoring", "pod", pod, cmd, `"limits":{"cpu":"30m","memory":"120Mi"}`, true)
 		}
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	// author: tagao@redhat.com
-	g.It("Author:tagao-High-63657-check On/Off switch of systemd Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-63657-check On/Off switch of systemd Collector in Node Exporter [Serial]", func() {
 		var (
 			enableSystemdUnits = filepath.Join(monitoringBaseDir, "enableSystemdUnits.yaml")
 		)
@@ -2533,10 +2553,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		output, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output).To(o.ContainSubstring("--collector.systemd"))
 		o.Expect(output).To(o.ContainSubstring("--collector.systemd.unit-include=^(network.+|nss.+|logrotate.timer)$"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	// author: tagao@redhat.com
-	g.It("Author:tagao-High-63658-check On/Off switch of mountstats Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-63658-check On/Off switch of mountstats Collector in Node Exporter [Serial]", func() {
 		var (
 			enableMountstats    = filepath.Join(monitoringBaseDir, "enableMountstats.yaml")
 			enableMountstatsNFS = filepath.Join(monitoringBaseDir, "enableMountstats_nfs.yaml")
@@ -2576,10 +2597,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		} else {
 			e2e.Logf("no need to check nfs metrics for this env")
 		}
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings and pkg/manifests/manifests_test.go::TestSetArg
 	// author: tagao@redhat.com
-	g.It("Author:tagao-Medium-64868-netclass/netdev device configuration [Serial]", func() {
+	/* 	g.It("Author:tagao-Medium-64868-netclass/netdev device configuration [Serial]", func() {
 		var (
 			ignoredNetworkDevices = filepath.Join(monitoringBaseDir, "ignoredNetworkDevices-lo.yaml")
 		)
@@ -2622,10 +2644,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		output, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output).To(o.ContainSubstring("--collector.netclass.ignored-devices=^(.*)$"))
 		o.Expect(output).To(o.ContainSubstring("--collector.netdev.device-exclude=^(.*)$"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestThanosQuerierConfiguration
 	// author: tagao@redhat.com
-	g.It("Author:tagao-LEVEL0-Medium-64296-disable CORS headers on Thanos querier [Serial]", func() {
+	/* 	g.It("Author:tagao-LEVEL0-Medium-64296-disable CORS headers on Thanos querier [Serial]", func() {
 		var (
 			enableCORS = filepath.Join(monitoringBaseDir, "enableCORS.yaml")
 		)
@@ -2646,7 +2669,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check the config again")
 		cmd := "-ojsonpath={.spec.template.spec.containers[?(@.name==\"thanos-query\")].args}"
 		checkYamlconfig(oc, "openshift-monitoring", "deployments", "thanos-querier", cmd, `--web.disable-cors`, false)
-	})
+	}) */
 
 	//author: tagao@redhat.com
 	g.It("Author:tagao-Medium-43106-disable Alertmanager deployment[Serial]", func() {
@@ -2804,8 +2827,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		o.Expect(result).To(o.ContainSubstring(`"cpu":"10m","memory":"100Mi"`))
 	})
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestNodeExporterCollectorSettings
 	//author: tagao@redhat.com
-	g.It("Author:tagao-High-67503-check On/Off switch of processes Collector in Node Exporter [Serial]", func() {
+	/* 	g.It("Author:tagao-High-67503-check On/Off switch of processes Collector in Node Exporter [Serial]", func() {
 		var (
 			enableProcesses = filepath.Join(monitoringBaseDir, "enableProcesses.yaml")
 		)
@@ -2836,10 +2860,11 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		exutil.By("check processes in daemonset")
 		output, _ = oc.AsAdmin().WithoutNamespace().Run("get").Args("daemonset.apps/node-exporter", "-ojsonpath={.spec.template.spec.containers[?(@.name==\"node-exporter\")].args}", "-n", "openshift-monitoring").Output()
 		o.Expect(output).To(o.ContainSubstring("--collector.processes"))
-	})
+	}) */
 
+	// The test is already covered in pkg/manifests/manifests_test.go::TestPrometheusRemoteWriteProxy
 	// author: tagao@redhat.com
-	g.It("Author:tagao-Medium-73009-CMO is correctly forwarding current proxy config to the prometheus operator in remote write configs [Serial]", func() {
+	/* 	g.It("Author:tagao-Medium-73009-CMO is correctly forwarding current proxy config to the prometheus operator in remote write configs [Serial]", func() {
 		var (
 			remotewriteCM = filepath.Join(monitoringBaseDir, "example-remotewrite-cm.yaml")
 		)
@@ -2879,7 +2904,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			o.Expect(proxyUrl).NotTo(o.Equal(""))
 			o.Expect(proxyUrl).To(o.Equal(httpProxy))
 		}
-	})
+	}) */
 
 	// author: tagao@redhat.com
 	g.It("Author:tagao-Medium-73834-trigger PrometheusOperatorRejectedResources alert [Serial]", func() {
@@ -3050,8 +3075,9 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		}
 	})
 
+	// The test is already covered in test/e2e/metrics_adapter_test.go::TestMetricsServerRollout
 	// author: tagao@redhat.com
-	g.It("Author:tagao-Medium-73291-Graduate MetricsServer FeatureGate to GA [Serial]", func() {
+	/* 	g.It("Author:tagao-Medium-73291-Graduate MetricsServer FeatureGate to GA [Serial]", func() {
 		var (
 			metrics_server_test = filepath.Join(monitoringBaseDir, "metrics_server_test.yaml")
 		)
@@ -3103,7 +3129,7 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 			cmd = `-ogo-template={{range.spec.containers}}{{"Container Name: "}}{{.name}}{{"\r\nresources: "}}{{.resources}}{{"\n"}}{{end}}`
 			checkYamlconfig(oc, "openshift-monitoring", "pod", pod, cmd, `resources: map[limits:map[cpu:50m memory:500Mi] requests:map[cpu:10m memory:50Mi]]`, true)
 		}
-	})
+	}) */
 
 	// author: tagao@redhat.com
 	g.It("Author:tagao-Medium-72776-Enable audit logging to Metrics Server - invalid value [Serial]", func() {
