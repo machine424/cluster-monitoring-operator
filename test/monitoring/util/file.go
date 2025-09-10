@@ -2,7 +2,7 @@
 //
 //	https://github.com/openshift/openshift-tests-private
 //
-// at commit 6a0f010cade029b805c2de02b6ee82532f03b0ab.
+// at commit a6a189840b006da18c8203950983c0cee5ea7354.
 package util
 
 import (

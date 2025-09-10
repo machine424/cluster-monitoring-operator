@@ -270,7 +270,7 @@ check-runbooks:
 ###########
 
 .PHONY: test
-test: test-unit test-rules test-e2e test-e2e-ginkgo
+test: test-unit test-rules test-e2e test-ginkgo
 
 .PHONY: test-unit
 test-unit:
@@ -279,14 +279,12 @@ test-unit:
 .PHONY: test-e2e
 test-e2e: KUBECONFIG?=$(HOME)/.kube/config
 test-e2e:
-	KUBECONFIG=$(KUBECONFIG) go test -v -timeout=300m ./test/monitoring/
-	# TODO: test-e2e-ginkgo will have its own job
-	# go test -v -timeout=150m ./test/e2e/ --kubeconfig $(KUBECONFIG)
+	go test -v -timeout=150m ./test/e2e/ --kubeconfig $(KUBECONFIG)
 
-.PHONY: test-e2e-ginkgo
-test-e2e-ginkgo: KUBECONFIG?=$(HOME)/.kube/config
-test-e2e-ginkgo:
-	KUBECONFIG=$(KUBECONFIG) go test -v -timeout=300m ./test/monitoring/
+.PHONY: test-ginkgo
+test-ginkgo: KUBECONFIG?=$(HOME)/.kube/config
+test-ginkgo:
+	KUBECONFIG=$(KUBECONFIG) go test -v -timeout=150m ./test/monitoring/
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)

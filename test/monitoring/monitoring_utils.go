@@ -2,11 +2,12 @@
 //
 //	https://github.com/openshift/openshift-tests-private
 //
-// at commit 6a0f010cade029b805c2de02b6ee82532f03b0ab.
+// at commit a6a189840b006da18c8203950983c0cee5ea7354.
 package monitoring
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os/exec"
@@ -233,11 +234,17 @@ func deleteConfig(oc *exutil.CLI, configName, ns string) {
 
 // patch&check enforcedBodySizeLimit value in cluster-monitoring-config
 func patchAndCheckBodySizeLimit(oc *exutil.CLI, limitValue string, checkValue string) {
-	patchLimit := oc.AsAdmin().WithoutNamespace().Run("patch").Args("cm", "cluster-monitoring-config", "-p", `{"data": {"config.yaml": "prometheusK8s:\n enforcedBodySizeLimit: `+limitValue+`"}}`, "--type=merge", "-n", "openshift-monitoring").Execute()
+	data := map[string]map[string]string{
+		"data": {
+			"config.yaml": fmt.Sprintf("prometheusK8s:\n  enforcedBodySizeLimit: \"%s\"", limitValue),
+		},
+	}
+	jsonBytes, _ := json.Marshal(data)
+	patchLimit := oc.AsAdmin().WithoutNamespace().Run("patch").Args("cm", "cluster-monitoring-config", "-p", string(jsonBytes), "--type=merge", "-n", "openshift-monitoring").Execute()
 	o.Expect(patchLimit).NotTo(o.HaveOccurred())
-	e2e.Logf("failed to patch enforcedBodySizeLimit value: %v", limitValue)
+	e2e.Logf("enforcedBodySizeLimit value: %v", limitValue)
 
-	checkLimit := wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, 180*time.Second, false, func(context.Context) (bool, error) {
+	checkLimit := wait.PollUntilContextTimeout(context.TODO(), 5*time.Second, 360*time.Second, false, func(context.Context) (bool, error) {
 		limit, err := oc.AsAdmin().WithoutNamespace().Run("exec").Args("-n", "openshift-monitoring", "-c", "prometheus", "prometheus-k8s-0", "--", "bash", "-c", "cat /etc/prometheus/config_out/prometheus.env.yaml | grep body_size_limit | uniq").Output()
 		if err != nil || !strings.Contains(limit, checkValue) {
 			return false, nil
