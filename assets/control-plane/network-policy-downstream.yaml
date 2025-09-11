@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: control-plane
+    app.kubernetes.io/managed-by: cluster-monitoring-operator
+    app.kubernetes.io/name: control-plane
+    app.kubernetes.io/part-of: openshift-monitoring
+  name: allow-all-control-plane
+  namespace: openshift-monitoring
+spec:
+  egress:
+  - {}
+  ingress:
+  - {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress

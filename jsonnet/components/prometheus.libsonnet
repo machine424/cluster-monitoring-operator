@@ -12,6 +12,23 @@ function(params)
   local thanosSidecarTLSSecret = 'prometheus-k8s-thanos-sidecar-tls';
 
   prometheus(cfg) + {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-' + cfg.name,
+        namespace: cfg.namespace,
+        labels: cfg.commonLabels,
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
+
     trustedCaBundle: generateCertInjection.trustedCNOCaBundleCM(cfg.namespace, 'prometheus-trusted-ca-bundle'),
 
     grpcTlsSecret: {

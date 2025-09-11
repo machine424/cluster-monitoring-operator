@@ -114,6 +114,25 @@ function(params)
   local cfg = params;
 
   nodeExporter(cfg) {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-node-exporter',
+        namespace: 'openshift-monitoring',
+        labels: {
+          'app.kubernetes.io/name': 'node-exporter',
+          'app.kubernetes.io/component': 'node-exporter',
+        },
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
 
     // Adding the serving certs annotation causes the serving certs controller
     // to generate a valid and signed serving certificate and put it in the

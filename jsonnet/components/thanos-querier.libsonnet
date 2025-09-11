@@ -8,6 +8,26 @@ function(params)
   local cfg = params;
   local tq = querier(cfg);
   tq {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-thanos-querier',
+        namespace: 'openshift-monitoring',
+        labels: {
+          'app.kubernetes.io/name': 'thanos-querier',
+          'app.kubernetes.io/component': 'thanos-querier',
+        },
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
+
     mixin:: (import 'github.com/thanos-io/thanos/mixin/alerts/query.libsonnet') {
       targetGroups: {
         namespace: cfg.namespace,

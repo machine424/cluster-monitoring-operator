@@ -3,6 +3,26 @@ local withDescription = (import '../utils/add-annotations.libsonnet').withDescri
 function(params) {
   local cfg = params,
 
+  // Allow all NetworkPolicy - allows all ingress and egress traffic
+  networkPolicyDownstream: {
+    apiVersion: 'networking.k8s.io/v1',
+    kind: 'NetworkPolicy',
+    metadata: {
+      name: 'allow-all-metrics-server',
+      namespace: 'openshift-monitoring',
+      labels: {
+        'app.kubernetes.io/name': 'metrics-server',
+        'app.kubernetes.io/component': 'metrics-server',
+      },
+    },
+    spec: {
+      podSelector: {},
+      policyTypes: ['Ingress', 'Egress'],
+      ingress: [{}],
+      egress: [{}],
+    },
+  },
+
   serviceAccount: {
     apiVersion: 'v1',
     kind: 'ServiceAccount',

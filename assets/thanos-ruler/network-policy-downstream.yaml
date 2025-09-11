@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: thanos-ruler
+    app.kubernetes.io/managed-by: cluster-monitoring-operator
+    app.kubernetes.io/name: thanos-ruler
+    app.kubernetes.io/part-of: openshift-monitoring
+  name: allow-all-thanos-ruler
+  namespace: openshift-user-workload-monitoring
+spec:
+  egress:
+  - {}
+  ingress:
+  - {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress

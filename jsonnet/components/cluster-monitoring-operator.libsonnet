@@ -20,6 +20,23 @@ function(params) {
   local cmo = self,
   local cfg = defaults + params,
 
+  // Allow all NetworkPolicy - allows all ingress and egress traffic
+  networkPolicyDownstream: {
+    apiVersion: 'networking.k8s.io/v1',
+    kind: 'NetworkPolicy',
+    metadata: {
+      name: 'allow-all-' + cfg.name,
+      namespace: cfg.namespace,
+      labels: cfg.commonLabels,
+    },
+    spec: {
+      podSelector: {},
+      policyTypes: ['Ingress', 'Egress'],
+      ingress: [{}],
+      egress: [{}],
+    },
+  },
+
   '0alertingrulesCustomResourceDefinition': import './../crds/alertingrules-custom-resource-definition.json',
   '0alertrelabelconfigsCustomResourceDefinition': import './../crds/alertrelabelconfigs-custom-resource-definition.json',
 

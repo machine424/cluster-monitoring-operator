@@ -21,6 +21,26 @@ function(params)
   local tlsKeyPath = tlsMountPath + '/tls.key';
 
   {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-monitoring-plugin',
+        namespace: 'openshift-monitoring',
+        labels: {
+          'app.kubernetes.io/name': 'monitoring-plugin',
+          'app.kubernetes.io/component': 'monitoring-plugin',
+        },
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
+
     _config+:: {
       name: pluginName,
       namespace: 'openshift-monitoring',

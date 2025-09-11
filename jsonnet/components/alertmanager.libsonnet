@@ -14,6 +14,23 @@ function(params)
   };
 
   alertmanager(cfg) {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-' + cfg.name,
+        namespace: cfg.namespace,
+        labels: cfg.commonLabels,
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
+
     trustedCaBundle: generateCertInjection.trustedCNOCaBundleCM(cfg.namespace, 'alertmanager-trusted-ca-bundle'),
 
     // OpenShift route to access the Alertmanager UI.

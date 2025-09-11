@@ -16,6 +16,26 @@ function(params) {
     },
   },
 
+  // Allow all NetworkPolicy - allows all ingress and egress traffic
+  networkPolicyDownstream: {
+    apiVersion: 'networking.k8s.io/v1',
+    kind: 'NetworkPolicy',
+    metadata: {
+      name: 'allow-all-openshift-state-metrics',
+      namespace: 'openshift-monitoring',
+      labels: {
+        'app.kubernetes.io/name': 'openshift-state-metrics',
+        'app.kubernetes.io/component': 'openshift-state-metrics',
+      },
+    },
+    spec: {
+      podSelector: {},
+      policyTypes: ['Ingress', 'Egress'],
+      ingress: [{}],
+      egress: [{}],
+    },
+  },
+
   // Remapping everything as this is the only way I could think of without refactoring imported library
   // This shouldn't make much difference as openshift-state-metrics project is scheduled for deprecation
   clusterRoleBinding: osm.openshiftStateMetrics.clusterRoleBinding,

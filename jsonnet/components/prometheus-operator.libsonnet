@@ -11,6 +11,26 @@ function(params)
   local po = operator(params);
 
   po {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-prometheus-operator',
+        namespace: 'openshift-monitoring',
+        labels: {
+          'app.kubernetes.io/name': 'prometheus-operator',
+          'app.kubernetes.io/component': 'prometheus-operator',
+        },
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
+
     '0alertmanagerConfigCustomResourceDefinition'+:
       // Add v1beta1 AlertmanagerConfig version.
       (import 'github.com/prometheus-operator/prometheus-operator/jsonnet/prometheus-operator/alertmanagerconfigs-v1beta1-crd.libsonnet') +

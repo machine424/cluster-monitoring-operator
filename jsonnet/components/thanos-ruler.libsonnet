@@ -14,6 +14,26 @@ function(params)
   local tr = ruler(cfg);
 
   tr {
+    // Allow all NetworkPolicy - allows all ingress and egress traffic
+    networkPolicyDownstream: {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: {
+        name: 'allow-all-thanos-ruler',
+        namespace: 'openshift-user-workload-monitoring',
+        labels: {
+          'app.kubernetes.io/name': 'thanos-ruler',
+          'app.kubernetes.io/component': 'thanos-ruler',
+        },
+      },
+      spec: {
+        podSelector: {},
+        policyTypes: ['Ingress', 'Egress'],
+        ingress: [{}],
+        egress: [{}],
+      },
+    },
+
     mixin:: (import 'github.com/thanos-io/thanos/mixin/alerts/rule.libsonnet') {
       targetGroups: {
         namespace: tr.config.namespace,

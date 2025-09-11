@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: kube-state-metrics
+    app.kubernetes.io/managed-by: cluster-monitoring-operator
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/part-of: openshift-monitoring
+  name: allow-all-kube-state-metrics
+  namespace: openshift-monitoring
+spec:
+  egress:
+  - {}
+  ingress:
+  - {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress

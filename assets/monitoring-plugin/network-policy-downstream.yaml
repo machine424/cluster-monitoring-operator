@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: monitoring-plugin
+    app.kubernetes.io/managed-by: cluster-monitoring-operator
+    app.kubernetes.io/name: monitoring-plugin
+    app.kubernetes.io/part-of: openshift-monitoring
+  name: allow-all-monitoring-plugin
+  namespace: openshift-monitoring
+spec:
+  egress:
+  - {}
+  ingress:
+  - {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
