@@ -92,12 +92,8 @@ var _ = g.Describe("[sig-monitoring] Cluster_Observability parallel monitoring",
 		checkRetention(oc, "openshift-monitoring", "prometheus-k8s", "storage.tsdb.retention.time=45d", 20)
 	}) */
 
+	// TODO: could be merged with other RBAC tests
 	// author: hongyli@redhat.com
-	// NOT A DUPLICATE: This test is for PLATFORM Prometheus federate endpoint, while
-	// [test/e2e/user_workload_monitoring_test.go::assertUWMFederateEndpoint](file:///Users/machine424/personal-projects/github/cluster-monitoring-operator/test/e2e/user_workload_monitoring_test.go#L1089-L1185)
-	// is specifically for USER WORKLOAD Prometheus federate. These test different components.
-	// Platform federate endpoint testing is NOT covered in e2e tests - only UWM federate is tested.
-	// This test validates platform prometheus federate functionality unique to the main monitoring stack.
 	g.It("Author:hongyli-High-49514-federate service endpoint and route of platform Prometheus", func() {
 		exutil.By("skip case for external OIDC cluster")
 		isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)

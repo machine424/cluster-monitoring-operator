@@ -29,8 +29,8 @@ BIN_DIR ?= $(shell pwd)/tmp/bin
 
 # Docgen related variables
 TYPES_TARGET=pkg/manifests/types.go
-K8S_VERSION=$(shell echo -n v1. &&  cat go.mod | grep -w "k8s.io/api" | awk '{ print $$2 }' | cut -d "." -f 2)
-PO_VERSION=$(shell cat go.mod | grep "github.com/prometheus-operator/prometheus-operator[^=>]\+$$" | awk '{ print $$2 }' | sort -u)
+K8S_VERSION=$(shell go list -m -json k8s.io/api | jq -r '.Version | split(".")[1] | "v1." + .')
+PO_VERSION=$(shell go list  -m -json github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring | jq -r ".Version")
 
 EMBEDMD_BIN=$(BIN_DIR)/embedmd
 JB_BIN=$(BIN_DIR)/jb
